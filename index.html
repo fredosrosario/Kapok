@@ -36,25 +36,4 @@ function active(){return state.swimmers.filter(s=>!s.archived).sort((a,b)=>spend
 function ledger(id,recent){let months=[new Date().toISOString().slice(0,7)];let d=new Date();d.setMonth(d.getMonth()-1);months.push(d.toISOString().slice(0,7));let rows=[...state.transactions.filter(t=>t.swimmerId===id&&(!recent||months.includes(t.date.slice(0,7)))),...state.pendingPayments.filter(p=>p.swimmerId===id&&p.status==='pending').map(p=>({date:p.createdAt,label:'待確認',amount:p.amount,reason:''}))].sort((a,b)=>new Date(b.date)-new Date(a.date));return rows.length?rows.map(r=>'<div class=line><span>'+r.date.slice(5,10)+'</span><span>'+esc(r.label)+(r.reason?' · '+esc(r.reason):'')+'</span><b class="'+(r.amount<0?'neg':'pos')+'">'+(r.amount<0?'-':'+')+'MOP '+Math.abs(r.amount)+'</b></div>').join(''):'<div class=empty>沒有紀錄。</div>'}
 function msg(m){let [y,mo]=m.split('-').map(Number),end=new Date(Date.UTC(y,mo,0,15,59,59)),rows=state.swimmers.map(s=>({s,b:bal(s.id,end)})).filter(x=>x.b<0).sort((a,b)=>a.b-b.b),lines=[y+'年'+mo+'月份英才門票。'];rows.forEach(x=>lines.push(x.s.name+'尚欠'+(-x.b)+'元'));lines.push('','請大家MP轉給我。','入數後請到以下連結登記金額，待教練確認：',api,'註了名不用再給訊息');return lines.join(String.fromCharCode(10))}
 function today(){return new Date().toISOString().slice(0,10)} function defaultDate(){let d=new Date();while(![0,1,4].includes(d.getDay()))d.setDate(d.getDate()-1);return d.toISOString().slice(0,10)} function isSwim(x){let d=new Date(x+'T12:00:00+08:00');return x<=today()&&[0,1,4].includes(d.getDay())} function dt(x){return new Intl.DateTimeFormat('zh-Hant-MO',{timeZone:TZ,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(x))}
-</script></body></html><!doctype html>
-<html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Macau Kapok Swimming Club</title>
-    <meta http-equiv="refresh" content="0; url=https://erfmwvzbskywivfgjoae.supabase.co/functions/v1/kapok" />
-    <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 24px; color: #202124; }
-      a { color: #d94d52; font-weight: 700; }
-    </style>
-  </head>
-  <body>
-    <p>Opening Macau Kapok Swimming Club ticket app...</p>
-    <p><a id="link" href="https://erfmwvzbskywivfgjoae.supabase.co/functions/v1/kapok">Open app</a></p>
-    <script>
-      const target = "https://erfmwvzbskywivfgjoae.supabase.co/functions/v1/kapok" + window.location.hash;
-      document.getElementById("link").href = target;
-      window.location.replace(target);
-    </script>
-  </body>
-</html>
+</script></body></html>
