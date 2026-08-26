@@ -36,20 +36,18 @@ document.head.insertAdjacentHTML('beforeend', '<style>' +
   '@media(max-width:560px){.demo-banner{margin:8px 8px 0}.month-group{align-items:stretch;flex-direction:column}.month-pay{width:100%}}' +
   '</style>');
 
-const demoOriginalPost = window.post;
-window.post = async function demoPost(action, payload = {}, pincode = '') {
-  if (localDemo && action !== 'getState') {
-    if (action === 'verifyPin') return {ok: true};
-    return {state};
-  }
-  return demoOriginalPost(action, payload, pincode);
-};
+if (localDemo) {
+  const demoOriginalPost = window.post;
+  window.post = async function demoPost(action, payload = {}, pincode = '') {
+    if (action !== 'getState') {
+      if (action === 'verifyPin') return {ok: true};
+      return {state};
+    }
+    return demoOriginalPost(action, payload, pincode);
+  };
 
-const demoOriginalLoad = window.load;
-window.load = async function demoLoad(silent = false) {
-  if (localDemo) return;
-  return demoOriginalLoad(silent);
-};
+  window.load = async function demoLoad() {};
+}
 
 function monthName(m) {
   const [year, monthNumber] = m.split('-').map(Number);
