@@ -33,6 +33,7 @@ document.head.insertAdjacentHTML('beforeend', '<style>' +
   '.month-label{font-weight:900}' +
   '.month-pay{min-width:118px;white-space:nowrap}' +
   '.ledger-title{padding-top:8px;margin-top:2px;border-top:1px solid var(--l);font-size:13px;font-weight:850;color:var(--m)}' +
+  '.usual-price-link{display:inline;width:auto;height:auto;min-height:0;padding:0 2px;border:0;border-radius:4px;background:transparent;color:var(--a);font:inherit;font-weight:850;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer}' +
   '@media(max-width:560px){.demo-banner{margin:8px 8px 0}.month-group{align-items:stretch;flex-direction:column}.month-pay{width:100%}}' +
   '</style>');
 
@@ -81,7 +82,9 @@ function balances() {
       const cls = balance < 0 ? 'neg' : balance > 0 ? 'pos' : 'zero';
       return '<div class="row"><div><div class="name">' + esc(s.name) +
         (s.archived ? ' <span class="pill">已封存</span>' : '') + '</div><div class="sub">' +
-        t('usual') + s.usualPrice + '</div></div><div><div class="amt ' + cls + '">' +
+        t('usual') + '<button type="button" class="usual-price-link" data-id="' + s.id + '" aria-label="' +
+        L('更改常用票價', 'Change usual price') + ' MOP ' + s.usualPrice + '" onclick="editUsualPrice(this.dataset.id)">' +
+        s.usualPrice + '</button></div></div><div><div class="amt ' + cls + '">' +
         (balance > 0 ? '+' : '') + 'MOP ' + balance + '</div></div><div class="detail">' +
         balanceMonthGroups(s.id) + '<div class="ledger-title">' + t('transactionHistory') +
         '</div>' + ledger(s.id, false) + '</div></div>';
@@ -154,13 +157,70 @@ async function recordPaid(full) {
   }
 }
 
+let usualPriceDialog = null;
+
+window.editUsualPrice = function editUsualPrice(id) {
+  const swimmer = sw(id);
+  if (!swimmer) return;
+  usualPriceDialog = {id};
+  render();
+  setTimeout(() => document.querySelector('#usualPriceAmount')?.focus(), 0);
+};
+
+window.closeUsualPrice = function closeUsualPrice() {
+  usualPriceDialog = null;
+  render();
+};
+
+window.saveUsualPrice = async function saveUsualPrice() {
+  if (!usualPriceDialog || saving) return;
+  const swimmerId = usualPriceDialog.id;
+  const swimmer = sw(swimmerId);
+  const amount = Number(document.querySelector('#usualPriceAmount')?.value);
+  if (!Number.isInteger(amount) || amount <= 0) return alert(t('badAmount'));
+  if (amount === swimmer.usualPrice) return closeUsualPrice();
+  const previous = cloneState();
+  swimmer.usualPrice = amount;
+  usualPriceDialog = null;
+  saving = true;
+  saveMsg = L('儲存中...', 'Saving...');
+  render();
+  try {
+    await save();
+    saving = false;
+    saveMsg = L('已儲存', 'Saved');
+    render();
+    clearSaveMsg();
+  } catch (e) {
+    state = previous;
+    usualPriceDialog = {id: swimmerId};
+    saving = false;
+    saveMsg = L('未能儲存', 'Save failed');
+    render();
+    alert(saveMsg);
+  }
+};
+
+function usualPriceModal() {
+  if (!usualPriceDialog) return '';
+  const swimmer = sw(usualPriceDialog.id);
+  const title = L('更改常用票價', 'Change usual price') + ' · ' + esc(swimmer.name);
+  return '<div class="modalback" onclick="closeUsualPrice()"><section class="paymodal" role="dialog" aria-modal="true" aria-labelledby="usualpricetitle" onclick="event.stopPropagation()"><div class="modalhead"><h3 id="usualpricetitle">' +
+    title + '</h3><button class="modalclose" onclick="closeUsualPrice()" aria-label="' + L('關閉', 'Close') +
+    '">×</button></div><label for="usualPriceAmount">' + L('每次出席的常用票價（MOP）', 'Usual fee per attendance (MOP)') +
+    '</label><input id="usualPriceAmount" class="payinput" type="number" inputmode="numeric" min="1" step="1" value="' +
+    swimmer.usualPrice + '" onkeydown="if(event.key===\'Enter\')saveUsualPrice()"><div class="modalactions"><button onclick="saveUsualPrice()">' +
+    L('儲存票價', 'Save fee') + '</button><button class="ghost" onclick="closeUsualPrice()">' + L('取消', 'Cancel') +
+    '</button></div></section></div>';
+}
+
 function coach() {
   if (tab === 'pending') tab = 'attendance';
   return head('門票管理') + (localDemo ? '<div class="demo-banner" role="status">' + t('demoNotice') +
     '</div>' : '') + '<main>' + pane() + '</main><div class="tabs" style="grid-template-columns:repeat(4,1fr)">' +
     ['attendance:' + t('attendance'), 'balances:' + t('balances'), 'message:' + t('message'), 'settings:' + t('settings')]
       .map(x => {let [k, v] = x.split(':'); return '<button class="' + (tab === k ? 'on' : '') + '" data-tab="' + k +
-        '" onclick="setTab(this.dataset.tab)">' + v + '</button>';}).join('') + '</div>' + paymentModal();
+        '" onclick="setTab(this.dataset.tab)">' + v + '</button>';}).join('') + '</div>' + paymentModal() + usualPriceModal();
 }
 
 function owedMonths(id, m) {
